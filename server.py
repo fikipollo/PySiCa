@@ -117,9 +117,11 @@ class Application(object):
 
 def read_settings_file():
     conf_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "conf/server.cfg")
+    logging_conf_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "conf/logging.cfg")
     # Copy the default settings
     if not os.path.isfile(conf_path):
-        copyfile(os.path.join(os.path.dirname(os.path.realpath(__file__)), "conf/server.default.cfg"), conf_path)
+        copyfile(os.path.join(os.path.dirname(os.path.realpath(__file__)), "default/server.default.cfg"), conf_path)
+        copyfile(os.path.join(os.path.dirname(os.path.realpath(__file__)), "default/logging.default.cfg"), logging_conf_path)
 
     settings = {}
     if os.path.isfile(conf_path):
@@ -140,6 +142,6 @@ def read_settings_file():
         settings["CLEAN_INTERVAL"] = CACHE_SETTINGS.get('CLEAN_INTERVAL', 30)
 
     # PREPARE LOGGING
-    logging.config.fileConfig(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'conf/logging.cfg'))
+    logging.config.fileConfig(logging_conf_path)
 
     return settings

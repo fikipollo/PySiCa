@@ -3,6 +3,7 @@ from time import sleep
 
 cache = SimpleCache()
 cache.server = "localhost"
+cache.port = 4444
 
 cache.add("1", {"name": "my simple example data", "some_value" : 45}, compress=False)
 cache.add("2", {"name": "another example data", "beers" : 250, "even_a_list" : [1, 2, 3, "asd"]}, user_id="1")

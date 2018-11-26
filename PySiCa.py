@@ -47,7 +47,7 @@ class PySiCa:
             "clean_interval": clean_interval
         }
         # SCHELUDE THE CLEANING TASK
-        self.logger.debug("A new instance for MemCacheManager was created...")
+        self.logger.debug("A new instance for MemCacheManager was created (id: " + str(self.id) + ")...")
         self.start_schelude_tasks()
 
     def add(self, element_id, data, data_type, timeout=None, compress=None, user_id=None):
@@ -57,7 +57,7 @@ class PySiCa:
             if compress is None:
                 compress = self.options.get("compress", True)
 
-            self.logger.info("Storing new element in cache " + ("(compressed)" if compress else "") + (" for user " + user_id if user_id is not None else ""))
+            self.logger.info("Storing new element in cache " + str(self.id) + (" (compressed)" if compress else "") + (" for user " + user_id if user_id is not None else ""))
             # Choose which cache should be used
             cache = self.get_cache(user_id)
             # Store the object in the corresponding cache
@@ -71,7 +71,7 @@ class PySiCa:
             self.print_memory_usage()
             return True
         except Exception as e:
-            self.logger.error("Unable to add new element to cache: " + str(e))
+            self.logger.error("Unable to add new element to cache " + str(self.id) + ": " + str(e))
             return False
 
     def get_elem(self, element_id=None, data_type=None, user_id=None, reset_timeout=False, timeout=None):
@@ -98,7 +98,7 @@ class PySiCa:
         # Get the element
         result = self.get_elem(element_id, user_id=user_id)
         if len(result) > 0:
-            self.logger.info("Deleting element from cache (element id: " + str(element_id) + ")")
+            self.logger.info("Deleting element from cache " + str(self.id) + " (element id: " + str(element_id) + ")")
             del cache[element_id]
         # Print the memory usage
         self.print_memory_usage()
@@ -114,23 +114,24 @@ class PySiCa:
             # Choose which cache should be used
             cache = self.get_cache(user_id)
             if str(element_id) in cache:
-                self.logger.info("Resetting timeout for element " + element_id + (" for user " + user_id if user_id is not None else ""))
+                self.logger.info("Resetting timeout for element " + element_id + " in cache "+ str(self.id) + (" for user " + user_id if user_id is not None else ""))
                 cache.get(element_id)["timeout"] = datetime.datetime.now() + datetime.timedelta(minutes=timeout)
                 return True
             else:
-                self.logger.info("Element " + element_id + " not found in cache" + (" for user " + user_id if user_id is not None else ""))
+                self.logger.info("Element " + element_id + " not found in cache " + str(self.id) + (" for user " + user_id if user_id is not None else ""))
                 return False
         except:
             return False
 
     def clean_cache(self):
-        self.logger.info("Cleaning cache")
+        self.logger.debug("Cleaning cache " + str(self.id))
+        self.options["n_iteration"] = self.options.get("n_iteration", 0) + 1
         now = datetime.datetime.now()
         # First clean the values for the general cache
         keys = self.general_cache.keys()
         for key in keys:
             if self.general_cache.get(key).get("timeout") < now:
-                self.logger.info("Removing item " + str(key) + " from cache")
+                self.logger.info("Removing item " + str(key) + " from cache " + str(self.id))
                 del self.general_cache[key]
         # Now clean the cache for each user
         user_ids = self.user_cache.keys()
@@ -139,12 +140,16 @@ class PySiCa:
             keys = cache.keys()
             for key in keys:
                 if cache.get(key).get("timeout") < now:
-                    self.logger.info("Removing item " + str(key) + " from " + user_id + "'s cache")
+                    self.logger.info("Removing item " + str(key) + " from " + user_id + "'s cache " + str(self.id))
                     del cache[key]
             if len(cache) == 0:
                 del self.user_cache[user_id]
         # Print the memory usage
-        self.print_memory_usage()
+        level="debug"
+        if self.options.get("n_iteration") > 10:
+            del self.options["n_iteration"]
+            level = "info"
+        self.print_memory_usage(level=level)
 
     def get_cache_size(self):
         # First get the total size
@@ -180,10 +185,12 @@ class PySiCa:
     def get_ram_usage(self):
         return str(psutil.virtual_memory().percent) + "%"
 
-    def print_memory_usage(self):
-        self.logger.info("Cache id is " + str(self.id))
-        self.logger.info(" - Mem cache size is " + self.get_cache_size())
-        self.logger.info(" - RAM usage is " + self.get_ram_usage())
+    def print_memory_usage(self, level="debug"):
+        message = "Status for cache " + str(self.id) + ": Size is " + self.get_cache_size() + ", RAM usage " + self.get_ram_usage()
+        if level == "info":
+            self.logger.info(message)
+        else:
+            self.logger.debug(message)
 
     def get_cache(self, user_id):
         if user_id is not None:
@@ -202,6 +209,13 @@ class PySiCa:
         self.logger.info("Scheduling clean_cache for cache " + str(self.id))
 
         cron = BackgroundScheduler(daemon=True)
+        try:
+            logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING)
+            logging.getLogger('apscheduler.scheduler').setLevel(logging.WARNING)
+            logging.getLogger('apscheduler.jobstores.default').setLevel(logging.WARNING)
+        except:
+            pass
+
         # Explicitly kick off the background thread
         cron.start()
 
