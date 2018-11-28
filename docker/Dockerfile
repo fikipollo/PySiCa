@@ -3,8 +3,8 @@
 # Based on official HTTPD
 ############################################################
 
-# Set the base image to official HTTP
-FROM ubuntu:16.04
+# Set the base image to official Python
+FROM python:3.5.6-alpine3.8
 
 # File Author / Maintainer
 MAINTAINER Rafael Hernandez <https://github.com/fikipollo>
@@ -12,24 +12,26 @@ MAINTAINER Rafael Hernandez <https://github.com/fikipollo>
 ################## BEGIN INSTALLATION ######################
 #INSTALL THE DEPENDENCIES
 
-RUN apt-get update  \
-    && apt-get install --no-install-recommends -y uwsgi unzip python-dev build-essential uwsgi-plugin-python \
-    && apt-get clean
-
 COPY configs/* /tmp/
 
-RUN unzip /tmp/pysica.zip -d /tmp/pysica \
+RUN set -x \
+    && apk --update --no-cache add make unzip \
+    && apk --update --no-cache --virtual .build-dep add build-base linux-headers tzdata \
+    && cp /usr/share/zoneinfo/Europe/Madrid /etc/localtime \
+    && echo "Europe/Madrid" >  /etc/timezone \
+    && pip install --upgrade pip \
+    && pip install --no-cache-dir cython \
+    && pip install --no-cache-dir ujson \
+    && pip install --no-cache-dir --no-binary :all: falcon \
+    && pip install --no-cache-dir APScheduler \
+    && pip install --no-cache-dir https://github.com/unbit/uwsgi/archive/uwsgi-2.0.zip#egg=uwsgi \
+    && apk del .build-dep \
+    && unzip /tmp/pysica.zip -d /tmp/pysica \
     && mv /tmp/pysica_uwsgi.ini /var/ \
     && mkdir -p /var/www/ \
     && mv /tmp/pysica /var/www/pysica \
     && mv /tmp/entrypoint.sh /usr/bin/entrypoint.sh \
-    && chmod +x /usr/bin/entrypoint.sh
-
-RUN python /tmp/get-pip.py \
-    && pip install -U pip \
-    && pip install -vU pathlib \
-    && pip install --upgrade incremental \
-    && pip install -r /var/www/pysica/requirements.txt \
+    && chmod +x /usr/bin/entrypoint.sh \
     && rm -r /tmp/*
 
 ##################### INSTALLATION END #####################

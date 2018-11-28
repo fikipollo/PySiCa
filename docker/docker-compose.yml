@@ -4,16 +4,8 @@ services:
     instance1-cache:
       image: fikipollo/pysica
       container_name: instance1-cache
-      depends_on:
-        - instance1-data
-      volumes_from:
-        - instance1-data
       ports:
         - "4444:4444"
-
-    instance1-data:
-      image: busybox
-      container_name: instance1-data
       volumes:
         - /data/instance1-data/logs:/var/log/pysica
         - /data/instance1-data/conf:/var/www/pysica/conf

@@ -1,1 +1,11 @@
-v0.1 December 2018 PySiCa, a simple Python Cache system
+v0.2 December 2018 PySiCa, a simple Python Cache system
+
+CHANGELOG
+
+ - v0.2 December 2018
+    · Migrated to Python 3
+    · Moved to from Flask to Falcon framework (improves performance)
+    · Using ujson for reducing time during json dumps operations
+
+ - v0.1 November 2018
+    · First version
