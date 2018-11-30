@@ -79,11 +79,13 @@ class PySiCa:
         cache = self.get_cache(user_id)
         result = []
         if element_id is not None and element_id in cache:
+            self.logger.info("Getting element from cache with ID " + str(self.id))
             elem = cache.get(element_id)
             if reset_timeout:
                 self.reset_timeout(element_id, timeout=timeout, user_id=user_id)
             result.append(marshal.loads(elem.get("data")) if elem.get("compressed") else elem.get("data"))
         elif data_type is not None:
+            self.logger.info("Getting all elements from cache for type " + data_type)
             for element_id in cache:
                 elem = cache.get(element_id)
                 if elem.get("data_type") == data_type:
