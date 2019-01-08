@@ -28,8 +28,12 @@ Installing the Falcon wheel is a great way to get up and running quickly in a de
 # Features
 PySiCa is entirely implemented in Python and provides the following features:
 - Easy to use and to install in your application.
-- It does not depend on other libraries or tools.
 - Available as a module imported in your application or as a self-contained service accessible through API calls.
+  - Using RESTful API + a high-performance web server
+  - Using pure HTTP or file-based sockets     
+- It doesn't depend on other libraries or tools.
 - Lightweight module. The code takes less than 300 lines of code.
+- Dockerized version available
 
-# Using PySiCa as a self-contained service
+# Using PySiCa as a self-contained webserver
+Coming soon...
