@@ -4,16 +4,13 @@ services:
     $${INSTANCE_NAME}-cache:
       image: fikipollo/pysica
       container_name: $${INSTANCE_NAME}-cache
-      depends_on:
-        - $${INSTANCE_NAME}-data
-      volumes_from:
-        - $${INSTANCE_NAME}-data
       ports:
-        - "4444:4444"
-
-    $${INSTANCE_NAME}-data:
-      image: busybox
-      container_name: $${INSTANCE_NAME}-data
+        - "$${INSTANCE_PORT_1}:4444"
+      environment:
+        - SERVER_MODE=web_based # web_based or socket_based
+        - SERVER_SOCKET_FILE=/some/file.sock
+        - SERVER_BUFFER_SIZE=4096
+        - SERVER_HOST_NAME=my.cache.com
       volumes:
         - /data/$${INSTANCE_NAME}-data/logs:/var/log/pysica
         - /data/$${INSTANCE_NAME}-data/conf:/var/www/pysica/conf

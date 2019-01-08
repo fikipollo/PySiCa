@@ -1,4 +1,5 @@
 .idea/
 *.pyc
+conf/
 conf/*.cfg
 venv

@@ -30,18 +30,21 @@ print("Test " + str(i) + ". Get value (not valid id, not expected) \t" + ("OK" i
 print("     " + str(result) + "\n")
 
 i+=1
+print("Waiting 30 seconds...")
 sleep(30)
 result = cache.get("1", reset_timeout=True, timeout=1)  # Should be there
 print("Test " + str(i) + ". Get value and reset timeout (valid id, in time, expected) \t" + ("OK" if result.success else "FAIL"))
 print("     " + str(result) + "\n")
 
 i+=1
+print("Waiting 40 seconds...")
 sleep(40)
 result = cache.get("1")  # Should be there
 print("Test " + str(i) + ". Get value after reset timeout (valid id, in time, expected) \t" + ("OK" if result.success else "FAIL"))
 print("     " + str(result) + "\n")
 
 i+=1
+print("Waiting 60 seconds...")
 sleep(60)
 result = cache.get("1")  # Should NOT be there
 print("Test " + str(i) + ". Get value after timeout (elem not expected) \t" + ("OK" if not result.success else "FAIL"))
@@ -65,7 +68,7 @@ print("     " + str(result) + "\n")
 i+=1
 result = cache.get(data_type="superobjects")
 print("Test " + str(i) + ". Get elems by type (expected 2 elems) \t" + ("OK" if result.success and len(result.result) == 2 else "FAIL"))
-# print("     " + str(result) + "\n")
+print("\n")
 
 i+=1
 result = cache.reset("3", timeout=1)
@@ -78,6 +81,7 @@ print("Test " + str(i) + ". Reset timeout for invalid elem to 1 minute \t" + ("O
 print("     " + str(result) + "\n")
 
 i+=1
+print("Waiting 90 seconds...")
 sleep(90)
 result = cache.get(data_type="superobjects") # Elem 3 should NOT be there
 print("Test " + str(i) + ". Get elems by type after timeout (expected 1 elem) \t" + ("OK" if result.success and len(result.result) == 1 else "FAIL"))

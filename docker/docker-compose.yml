@@ -6,6 +6,8 @@ services:
       container_name: instance1-cache
       ports:
         - "4444:4444"
+      environment:
+        - SERVER_MODE=web_based
       volumes:
         - /data/instance1-data/logs:/var/log/pysica
         - /data/instance1-data/conf:/var/www/pysica/conf

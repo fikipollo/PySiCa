@@ -12,6 +12,7 @@ from logging.handlers import RotatingFileHandler
 from shutil import copyfile
 from pysica import PySiCa
 
+
 class Application(object):
 
     def __init__(self):
@@ -20,7 +21,7 @@ class Application(object):
         # ------------------------------------------------------------------------------------------
         self.settings = self.read_settings_file()
 
-        # Enable the logging to file fir production
+        # Enable the logging to file for production
         logger = None
         if not self.settings.get("DEBUG", True):
             try:
@@ -117,7 +118,7 @@ class Application(object):
             config = ujson.load(open(conf_path))
 
             SERVER_SETTINGS = config.get("SERVER_SETTINGS", {})
-            settings["SERVER_HOST_NAME "] = SERVER_SETTINGS.get('SERVER_HOST_NAME', "0.0.0.0")
+            settings["SERVER_HOST_NAME"] = SERVER_SETTINGS.get('SERVER_HOST_NAME', "0.0.0.0")
             settings["SERVER_SUBDOMAIN"] = SERVER_SETTINGS.get('SERVER_SUBDOMAIN', "")
             settings["SERVER_PORT_NUMBER"] = SERVER_SETTINGS.get('SERVER_PORT_NUMBER', 8081)
             settings["DEBUG"] = SERVER_SETTINGS.get('DEBUG', False)
