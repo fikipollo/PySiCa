@@ -3,7 +3,7 @@ v0.3 January 2019 PySiCa, a simple Python Cache system
 CHANGELOG
 
  - v0.3 January 2019
-    · sd
+    · Cache server based on sockets (with gzip compression)
 
  - v0.2 December 2018
     · Migrated to Python 3
