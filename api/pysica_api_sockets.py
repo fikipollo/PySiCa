@@ -1,5 +1,6 @@
 import socket
 import json
+import zlib
 from struct import unpack, pack
 
 
@@ -28,6 +29,10 @@ def cache_add(element_id, data, data_type, timeout=None, compress=None, user_id=
     try:
         cp = SocketHandler()
         cp.connect(socket_file, server, port)
+    except Exception as ex:
+        return Response({"success": False, "message": "Unable to connect to cache server. Error message: " + str(ex)})
+
+    try:
         # Prepare package
         data = {
             'target': "add",
@@ -42,14 +47,18 @@ def cache_add(element_id, data, data_type, timeout=None, compress=None, user_id=
         response = cp.send_data(data, buffer_size=buffer_size)
         cp.close()
         return Response(json.loads(response))
-    except:
-        return Response({"success": False, "message": "Unable to connect to cache server."})
+    except Exception as ex:
+        return Response({"success": False, "message": "Unable to add element to cache. Error message: " + str(ex)})
 
 
 def cache_get(element_id=None, data_type=None, user_id=None, reset_timeout=False, timeout=None, socket_file=None, server="localhost", port=4444, buffer_size=4096):
     try:
         cp = SocketHandler()
         cp.connect(socket_file, server, port)
+    except Exception as ex:
+        return Response({"success": False, "message": "Unable to connect to cache server. Error message: " + str(ex)})
+
+    try:
         # Prepare package
         data = {
             'target': "get",
@@ -63,19 +72,22 @@ def cache_get(element_id=None, data_type=None, user_id=None, reset_timeout=False
         response = cp.get_data(data, buffer_size=buffer_size)
         cp.close()
         return Response(json.loads(response))
-    except:
-        return Response({"success": False, "message": "Unable to connect to cache server."})
+    except Exception as ex:
+        return Response({"success": False, "message": "Unable to get element from cache. Error message: " + str(ex)})
 
 
 def cache_remove(element_id, user_id=None, return_elem=False, socket_file=None, server="localhost", port=4444, buffer_size=4096):
+    # Get data
+    if return_elem:
+        element = cache_get(element_id=element_id, user_id=user_id, socket_file=socket_file, server=server, port=port, buffer_size=buffer_size)
+
     try:
-        # Get data
-        if return_elem:
-            element = cache_get(element_id=element_id, user_id=user_id, socket_file=socket_file, server=server, port=port, buffer_size=buffer_size)
-        # Remove element
         cp = SocketHandler()
         cp.connect(socket_file, server, port)
-        print("sadasds")
+    except Exception as ex:
+        return Response({"success": False, "message": "Unable to connect to cache server. Error message: " + str(ex)})
+
+    try:
         # Prepare package
         data={
             'target': "remove",
@@ -90,14 +102,18 @@ def cache_remove(element_id, user_id=None, return_elem=False, socket_file=None, 
 
         cp.close()
         return Response(response)
-    except:
-        return Response({"success": False, "message": "Unable to connect to cache server."})
+    except Exception as ex:
+        return Response({"success": False, "message": "Unable to remove element from cache. Error message: " + str(ex)})
 
 
 def cache_reset(element_id, timeout=None, user_id=None, socket_file=None, server="localhost", port=4444, buffer_size=4096):
     try:
         cp = SocketHandler()
         cp.connect(socket_file, server, port)
+    except Exception as ex:
+        return Response({"success": False, "message": "Unable to connect to cache server. Error message: " + str(ex)})
+
+    try:
         # Prepare package
         data={
             'target': "reset",
@@ -109,8 +125,8 @@ def cache_reset(element_id, timeout=None, user_id=None, socket_file=None, server
         response = cp.send_data(data, buffer_size=buffer_size)
         cp.close()
         return Response(json.loads(response))
-    except:
-        return Response({"success": False, "message": "Unable to connect to cache server."})
+    except Exception as ex:
+        return Response({"success": False, "message": "Unable to reset element at cache. Error message: " + str(ex)})
 
 
 class SocketHandler:
@@ -118,7 +134,7 @@ class SocketHandler:
         self.socket = None
 
     def connect(self, socket_file=None, server_ip=None, server_port=None):
-        if socket_file is not None:
+        if socket_file is not None and socket_file != "":
             self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             self.socket.connect(socket_file)
         else:
@@ -131,7 +147,7 @@ class SocketHandler:
         self.socket = None
 
     def send_data(self, data, buffer_size=4096):
-        data = json.dumps(data)
+        data = zlib.compress(json.dumps(data))
         # use struct to make sure we have a consistent endianness on the length
         length = pack('>Q', len(data))
         # sendall to make sure it blocks if there's back-pressure on the socket
@@ -146,10 +162,10 @@ class SocketHandler:
             # to do it all in one go, so I believe.
             to_read = data_length - len(data)
             data += self.socket.recv(buffer_size if to_read > buffer_size else to_read)
-        return data
+        return zlib.decompress(data)
 
     def get_data(self, data, buffer_size=4096):
-        data = json.dumps(data)
+        data = zlib.compress(json.dumps(data))
         # use struct to make sure we have a consistent endianness on the length
         length = pack('>Q', len(data))
         # sendall to make sure it blocks if there's back-pressure on the socket
@@ -164,7 +180,7 @@ class SocketHandler:
             # to do it all in one go, so I believe.
             to_read = data_length - len(data)
             data += self.socket.recv(buffer_size if to_read > buffer_size else to_read)
-        return data
+        return zlib.decompress(data)
 
 
 class Response(object):
@@ -200,5 +216,3 @@ class Response(object):
 
     def __repr__(self):
         return self.__str__()
-
-

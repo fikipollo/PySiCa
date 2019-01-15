@@ -20,21 +20,12 @@ class Application(object):
         # SERVER DEFINITION
         # ------------------------------------------------------------------------------------------
         self.settings = self.read_settings_file()
-
+        self.buffer_size = 0
         # Enable the logging to file for production
-        logger = None
-        if not self.settings.get("DEBUG", True):
-            try:
-                handler = RotatingFileHandler(self.settings.get("LOG_FILE"), maxBytes=31457280, backupCount=5)
-                handler.setLevel(logging.INFO)
-                handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s : %(funcName)s - %(message)s'))
-                logger = logging.getLogger(__name__)
-                logger.root.addHandler(handler)
-            except Exception as e:
-                raise Exception("Unable to open log file " + self.settings.get("LOG_FILE", "LOG FILE NOT SPECIFIED") + ". Error message: " + str(e))
-
+        self.logger= self.configure_logging()
+        # Create the instance for the cache
         self.cache_instance = PySiCa(
-            logger=logger,
+            logger=self.logger,
             timeout=self.settings.get("TIMEOUT"),
             compress=self.settings.get("COMPRESS"),
             max_elems=self.settings.get("MAX_ELEMS"),
@@ -136,6 +127,22 @@ class Application(object):
 
         return settings
 
+    def configure_logging(self):
+        if not self.settings.get("DEBUG", True):
+            try:
+                logger = logging.getLogger()
+                logger.handlers=[]
+                #
+                handler = RotatingFileHandler(self.settings.get("LOG_FILE"), maxBytes=31457280, backupCount=5)
+                handler.propagate = False
+                handler.setLevel(logging.INFO)
+                handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s : %(funcName)s - %(message)s'))
+                logger.root.addHandler(handler)
+                return logger
+            except Exception as e:
+                raise Exception("Unable to open log file " + self.settings.get("LOG_FILE", "LOG FILE NOT SPECIFIED") + ". Error message: " + str(e))
+        else:
+            return logging.root
 
 api = application = falcon.API()
 application.req_options.auto_parse_form_urlencoded = True

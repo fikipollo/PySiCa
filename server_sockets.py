@@ -7,8 +7,8 @@ v0.2 December 2018
 import os
 import ujson
 import socket
-import json
 import logging.config
+import zlib
 from logging.handlers import RotatingFileHandler
 from shutil import copyfile
 from pysica import PySiCa
@@ -24,10 +24,10 @@ class Application(object):
         self.buffer_size = 0
         self.socket = None
         # Enable the logging to file for production
-        logger= self.configure_logging()
+        self.logger = self.configure_logging()
         # Create the instance for the cache
         self.cache_instance = PySiCa(
-            logger=logger,
+            logger=self.logger,
             timeout=self.settings.get("TIMEOUT"),
             compress=self.settings.get("COMPRESS"),
             max_elems=self.settings.get("MAX_ELEMS"),
@@ -36,7 +36,7 @@ class Application(object):
 
     def run_server(self):
         self.buffer_size = self.settings.get("SERVER_BUFFER_SIZE")
-
+        self.logger.info("Buffer size is " + self.humanize_bytes(int(self.buffer_size)))
         socket_file = self.settings.get("SERVER_SOCKET_FILE")
         if socket_file != "" and socket_file is not None:
             self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -46,22 +46,22 @@ class Application(object):
                 pass
             self.socket.bind(socket_file)
             os.chmod(socket_file, 0o777)
-            print("Listening on " + socket_file + "...")
+            self.logger.info("Listening on " + socket_file + "...")
         else:
             # Use network socket by default
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             host = self.settings.get("SERVER_HOST_NAME")
             port = self.settings.get("SERVER_PORT_NUMBER")
             self.socket.bind((host, port))
-            print("Listening on %s:%s..." % (host, str(port)))
-
+            self.logger.info("Listening on %s:%s..." % (host, str(port)))
+        # Listen to the socket
         self.socket.listen(1)
 
     def handle_requests(self):
         try:
             while True:
                 # First read the entire request
-                (request, connection) = self.read_blob()
+                (request, connection) = self.read_request()
                 # Now, check the target function to use
                 target = request.get("target")
                 respond = None
@@ -77,6 +77,8 @@ class Application(object):
                     respond = {'success': False, 'message': target + " is not a valid option."}
                 # Return the respond
                 self.send_respond(connection, respond)
+        except Exception as ex:
+            self.logger.error("Failed while reading request data. Error message: " + str(ex))
         finally:
             self.close()
 
@@ -113,15 +115,27 @@ class Application(object):
 
     def send_respond(self, connection, data):
         try:
-            data = json.dumps(data)
+            data = zlib.compress(ujson.dumps(data).encode("utf-8"))
             # use struct to make sure we have a consistent endianness on the length
             length = pack('>Q', len(data))
             # sendall to make sure it blocks if there's back-pressure on the socket
             connection.sendall(length)
-            connection.sendall(data.encode())
+            connection.sendall(data)
         finally:
             connection.shutdown(socket.SHUT_WR)
             connection.close()
+
+    def read_request(self):
+        (connection, addr) = self.socket.accept()
+        bs = connection.recv(8)
+        (data_length,) = unpack('>Q', bs)
+        data = b''
+        while len(data) < data_length:
+            # doing it in batches is generally better than trying
+            # to do it all in one go, so I believe.
+            to_read = data_length - len(data)
+            data += connection.recv(self.buffer_size if to_read > self.buffer_size else to_read)
+        return ujson.loads(zlib.decompress(data)), connection
 
     def close(self):
         self.socket.close()
@@ -160,30 +174,29 @@ class Application(object):
 
         return settings
 
-    def read_blob(self):
-        (connection, addr) = self.socket.accept()
-        bs = connection.recv(8)
-        (data_length,) = unpack('>Q', bs)
-        data = b''
-        while len(data) < data_length:
-            # doing it in batches is generally better than trying
-            # to do it all in one go, so I believe.
-            to_read = data_length - len(data)
-            data += connection.recv(self.buffer_size if to_read > self.buffer_size else to_read)
-        return ujson.loads(data), connection
-
     def configure_logging(self):
-        logger = None
         if not self.settings.get("DEBUG", True):
             try:
+                logger = logging.getLogger()
+                logger.handlers=[]
+                #
                 handler = RotatingFileHandler(self.settings.get("LOG_FILE"), maxBytes=31457280, backupCount=5)
+                handler.propagate = False
                 handler.setLevel(logging.INFO)
                 handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s : %(funcName)s - %(message)s'))
-                logger = logging.getLogger(__name__)
                 logger.root.addHandler(handler)
                 return logger
             except Exception as e:
                 raise Exception("Unable to open log file " + self.settings.get("LOG_FILE", "LOG FILE NOT SPECIFIED") + ". Error message: " + str(e))
+        else:
+            return logging.root
+
+    def humanize_bytes(self, size):
+        for unit in ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z']:
+            if abs(size) < 1024.0:
+                return "%3.1f %s%s" % (size, unit, 'B')
+            size /= 1024.0
+        return "%.1f%s%s" % (size, 'Yi', 'B')
 
 
 if __name__ == '__main__':

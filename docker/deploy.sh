@@ -14,8 +14,8 @@ rm -rf venv docker test .git .idea
 rm conf/*
 rm *.pyc
 
-sed -i 's/\/tmp\/cache/\/var\/log\/pysica\/cache/g' default/server.default.cfg
-sed -i 's/"DEBUG" : true/"DEBUG" : false/g' default/server.default.cfg
+sed -i 's#/tmp/cache#/var/log/pysica/cache#g' default/server.default.cfg
+sed -i 's/"DEBUG".*/"DEBUG" : false,/' default/server.default.cfg
 
 echo "Compressing server application... "
 zip -r ../pysica.zip *

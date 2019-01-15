@@ -12,8 +12,6 @@ MAINTAINER Rafael Hernandez <https://github.com/fikipollo>
 ################## BEGIN INSTALLATION ######################
 #INSTALL THE DEPENDENCIES
 
-COPY configs/* /tmp/
-
 RUN set -x \
     && apk --update --no-cache add make unzip \
     && apk --update --no-cache --virtual .build-dep add build-base linux-headers tzdata \
@@ -26,9 +24,12 @@ RUN set -x \
     && pip install --no-cache-dir APScheduler \
     && pip install --no-cache-dir https://github.com/unbit/uwsgi/archive/uwsgi-2.0.zip#egg=uwsgi \
     && apk del .build-dep \
-    && unzip /tmp/pysica.zip -d /tmp/pysica \
+    && mkdir -p /var/www/
+
+COPY configs/* /tmp/
+
+RUN unzip /tmp/pysica.zip -d /tmp/pysica \
     && mv /tmp/pysica_uwsgi.ini /var/ \
-    && mkdir -p /var/www/ \
     && mv /tmp/pysica /var/www/pysica \
     && mv /tmp/entrypoint.sh /usr/bin/entrypoint.sh \
     && chmod +x /usr/bin/entrypoint.sh \

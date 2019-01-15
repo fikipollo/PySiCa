@@ -18,10 +18,9 @@ SERVER_HOST_NAME="${SERVER_HOST_NAME:-0.0.0.0}"
 
 # Change the default configuration based on environment
 sed -i 's/"SERVER_MODE".*/"SERVER_MODE" : "'${SERVER_MODE}'",/' /var/www/pysica/conf/server.cfg
-sed -i 's/"SERVER_SOCKET_FILE".*/"SERVER_SOCKET_FILE" : "'${SERVER_SOCKET_FILE}'",/' /var/www/pysica/conf/server.cfg
+sed -i 's#"SERVER_SOCKET_FILE".*#"SERVER_SOCKET_FILE" : "'${SERVER_SOCKET_FILE}'",#' /var/www/pysica/conf/server.cfg
 sed -i 's/"SERVER_BUFFER_SIZE".*/"SERVER_BUFFER_SIZE" : '${SERVER_BUFFER_SIZE}',/' /var/www/pysica/conf/server.cfg
 sed -i 's/"SERVER_HOST_NAME".*/"SERVER_HOST_NAME" : "'${SERVER_HOST_NAME}'",/' /var/www/pysica/conf/server.cfg
-
 
 echo "#---------------------------------------------------------------------------------------------------"
 echo "# Welcome to PySiCa (Python Simple Cache)"
@@ -33,7 +32,7 @@ if [[ "$SERVER_MODE" == "socket_based" ]]; then
     echo "# the server.cfg file. Available options are 'web_based' for RESTFUL mode based on HTTP "
     echo "# and 'socket_based' to use pure socket communication."
     echo "#---------------------------------------------------------------------------------------------------"
-    python /var/www/pysica/server_sockets.py
+    python /var/www/pysica/server_sockets.py &
 else
     echo "# Cache server is running as web server"
     echo "# To change the running mode, please set the value for the variable SERVER_MODE in the"
@@ -45,8 +44,8 @@ else
       kill -9 `cat /tmp/pysica.pid`
       rm /tmp/pysica.*
     fi
-
     uwsgi --ini /var/pysica_uwsgi.ini
-    tail -f /var/log/pysica/cache.log
 fi
 
+echo "Listening to /var/log/pysica/cache.log"
+tail -f /var/log/pysica/cache.log
